@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Sistem Absensi & Gaji</title>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+<!-- ✅ jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- ✅ AutoTable -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+    font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    background: #f4f8ff;
+    padding-bottom: 80px;
+}
+
+/* HEADER */
+.header {
+    background: linear-gradient(135deg,#00529c,#0073e6);
+    color: white;
+    padding: 25px;
+    text-align: center;
+    border-bottom-left-radius: 25px;
+    border-bottom-right-radius: 25px;
+}
+
+/* GRID */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 15px;
+    padding: 15px;
+}
+
+.menu-box {
+    background: white;
+    padding: 25px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: 0.3s;
+}
+.menu-box:hover { transform: translateY(-5px); }
+
+.menu-box i {
+    font-size: 30px;
+    color: #0073e6;
+    margin-bottom: 10px;
+}
+
+/* PAGE */
+.page { display: none; padding: 15px; }
+.active { display: block; }
+
+/* CARD */
+.card {
+    background: white;
+    padding: 15px;
+    border-radius: 18px;
+    margin-bottom: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+/* INPUT */
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin: 6px 0;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+}
+
+/* BUTTON */
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 5px;
+    border: none;
+    border-radius: 10px;
+    color: white;
+}
+.add { background: #0073e6; }
+.pdf { background: #f39c12; }
+
+/* ICON BUTTON */
+.icon-btn {
+    background: #0073e6;
+    border: none;
+    padding: 8px;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+}
+
+/* TABLE */
+.table-wrapper { width:100%; overflow-x:hidden; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+th, td {
+    padding: 8px;
+    text-align: center;
+    font-size: 12px;
+    word-wrap: break-word;
+}
+th {
+    background: #00529c;
+    color: white;
+}
+
+/* FOOTER */
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: white;
+    display: flex;
+    border-top: 1px solid #ddd;
+}
+.footer button {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 6px 0;
+    color: #777;
+    transition: 0.3s;
+}
+.footer i {
+    display: block;
+    font-size: 20px;
+    transition: 0.3s;
+}
+.footer span {
+    font-size: 11px;
+}
+.footer button.active {
+    color: #0073e6;
+}
+.footer button.active i {
+    transform: scale(1.4) translateY(-5px);
+}
+.footer button:active i {
+    transform: scale(1.2);
+}
+</style>
+</head>
+
+<body>
+
+<!-- HOME -->
+<div id="home" class="page active">
+    <div class="header">
+        <h2>KALKULATOR</h2>
+        <p>Absensi & Gaji</p>
+    </div>
+
+    <div class="grid">
+        <div class="menu-box" onclick="navMenu('gaji')">
+            <i class="fa-solid fa-wallet"></i>
+            <p>Gaji</p>
+        </div>
+        <div class="menu-box" onclick="navMenu('absensi')">
+            <i class="fa-solid fa-calendar-days"></i>
+            <p>Absensi</p>
+        </div>
+    </div>
+</div>
+
+<!-- GAJI -->
+<div id="gaji" class="page">
+    <div class="card">
+        <h3>Hitung Gaji</h3>
+        <input id="nama" placeholder="Nama">
+        <input id="hadir" type="number" placeholder="Jumlah Hadir">
+        <input id="gajiHarian" placeholder="Gaji / Hari">
+        <input id="potongan" placeholder="Potongan">
+
+        <button class="add" onclick="hitungGaji()">Hitung</button>
+        <button class="pdf" onclick="pdfGaji()">Download PDF</button>
+    </div>
+
+    <div class="card table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nama</th>
+                    <th>Hadir</th>
+                    <th>Gaji/Hari</th>
+                    <th>Potongan</th>
+                    <th>Total</th>
+                    <th>Edit</th>
+                </tr>
+            </thead>
+            <tbody id="tabelGaji"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ABSENSI -->
+<div id="absensi" class="page">
+    <div class="card">
+        <h3>Absensi</h3>
+        <input id="namaAbs" placeholder="Nama">
+        <input id="tanggal" type="date">
+        <select id="status">
+            <option>Hadir</option>
+            <option>Izin</option>
+            <option>Sakit</option>
+        </select>
+
+        <button class="add" onclick="tambahAbsensi()">Tambah</button>
+        <button class="pdf" onclick="downloadPDF()">Download PDF</button>
+    </div>
+
+    <div class="card table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nama</th>
+                    <th>Tanggal</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="tabelAbs"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+    <button class="active" onclick="navMenu('home',this)">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+    </button>
+    <button onclick="navMenu('gaji',this)">
+        <i class="fa-solid fa-wallet"></i>
+        <span>Gaji</span>
+    </button>
+    <button onclick="navMenu('absensi',this)">
+        <i class="fa-solid fa-calendar"></i>
+        <span>Absensi</span>
+    </button>
+</div>
+
+<script>
+let dataAbs = [];
+let dataGaji = [];
+let editIndex = -1;
+
+const { jsPDF } = window.jspdf;
+
+function formatRupiah(x){
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g,".");
+}
+
+/* FORMAT INPUT */
+["gajiHarian","potongan"].forEach(id=>{
+    document.getElementById(id).addEventListener("input",e=>{
+        let v=e.target.value.replace(/\D/g,"");
+        e.target.value=formatRupiah(v);
+    });
+});
+
+function navMenu(page, el){
+    document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+    document.getElementById(page).classList.add("active");
+
+    document.querySelectorAll(".footer button").forEach(b=>b.classList.remove("active"));
+    if(el) el.classList.add("active");
+}
+
+/* GAJI */
+function hitungGaji(){
+    let nama = document.getElementById("nama").value;
+    let hadir = parseInt(document.getElementById("hadir").value)||0;
+    let gaji = parseInt(document.getElementById("gajiHarian").value.replace(/\./g,""))||0;
+    let potongan = parseInt(document.getElementById("potongan").value.replace(/\./g,""))||0;
+    let total = (hadir*gaji)-potongan;
+
+    if(editIndex>=0){
+        dataGaji[editIndex]={nama,hadir,gaji,potongan,total};
+        editIndex=-1;
+    } else {
+        dataGaji.push({nama,hadir,gaji,potongan,total});
+    }
+
+    tampilGaji();
+
+    nama.value="";
+    hadir.value="";
+    gajiHarian.value="";
+    potongan.value="";
+}
+
+function tampilGaji(){
+    let html="";
+    dataGaji.forEach((d,i)=>{
+        html+=`
+        <tr>
+            <td>${d.nama}</td>
+            <td>${d.hadir}</td>
+            <td>${formatRupiah(d.gaji)}</td>
+            <td>${formatRupiah(d.potongan)}</td>
+            <td>${formatRupiah(d.total)}</td>
+            <td>
+                <button class="icon-btn" onclick="editGaji(${i})">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+            </td>
+        </tr>`;
+    });
+    tabelGaji.innerHTML=html;
+}
+
+function editGaji(i){
+    let d=dataGaji[i];
+    nama.value=d.nama;
+    hadir.value=d.hadir;
+    gajiHarian.value=formatRupiah(d.gaji);
+    potongan.value=formatRupiah(d.potongan);
+    editIndex=i;
+}
+
+/* ABSENSI */
+function tambahAbsensi(){
+    dataAbs.push({
+        nama:namaAbs.value,
+        tanggal:tanggal.value,
+        status:status.value
+    });
+
+    tampilAbs();
+
+    namaAbs.value="";
+    tanggal.value="";
+}
+
+function tampilAbs(){
+    let html="";
+    dataAbs.forEach((d)=>{
+        html+=`
+        <tr>
+            <td>${d.nama}</td>
+            <td>${d.tanggal}</td>
+            <td>${d.status}</td>
+        </tr>`;
+    });
+    tabelAbs.innerHTML=html;
+}
+
+/* ✅ PDF GAJI (TABEL) */
+function pdfGaji(){
+    let doc = new jsPDF();
+
+    doc.setFontSize(16);
+    doc.text("Laporan Gaji Karyawan", 14, 15);
+
+    let tableColumn = ["Nama", "Hadir", "Gaji/Hari", "Potongan", "Total"];
+    let tableRows = [];
+
+    dataGaji.forEach(d=>{
+        tableRows.push([
+            d.nama,
+            d.hadir,
+            formatRupiah(d.gaji),
+            formatRupiah(d.potongan),
+            formatRupiah(d.total)
+        ]);
+    });
+
+    doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+        theme: "grid",
+        styles: { halign: 'center' },
+        headStyles: { fillColor: [0, 115, 230] }
+    });
+
+    doc.save("laporan_gaji.pdf");
+}
+
+/* ✅ PDF ABSENSI (TABEL) */
+function downloadPDF(){
+    let doc = new jsPDF();
+
+    doc.setFontSize(16);
+    doc.text("Laporan Absensi", 14, 15);
+
+    let tableColumn = ["Nama", "Tanggal", "Status"];
+    let tableRows = [];
+
+    dataAbs.forEach(d=>{
+        tableRows.push([
+            d.nama,
+            d.tanggal,
+            d.status
+        ]);
+    });
+
+    doc.autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+        theme: "grid",
+        styles: { halign: 'center' },
+        headStyles: { fillColor: [0, 115, 230] }
+    });
+
+    doc.save("laporan_absensi.pdf");
+}
+</script>
+
+</body>
+</html>
